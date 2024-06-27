@@ -3,13 +3,17 @@ defmodule ExJrubyPort.JrubyContext do
   use TypedStruct
 
   typedstruct do
-    field(:java_path, any(), default: System.find_executable("java"))
-
-    field(:jruby_jar_path, any(),
-      default: Path.expand(Path.join([__DIR__, "..", "..", "jars", "jruby-complete-9.4.7.0.jar"]))
-    )
+    field(:jruby_path, any(), default: System.find_executable("jruby"))
+    field(:with_bundle_exec?, boolean(), default: false)
   end
 
-  def set_java_path(ctx, path), do: %JrubyContext{ctx | java_path: path}
-  def set_jruby_jar_path(ctx, path), do: %JrubyContext{ctx | jruby_jar_path: path}
+  def set_jruby_path(%JrubyContext{} = ctx, path), do: %JrubyContext{ctx | jruby_path: path}
+
+  def run_with_bundle_exec(%JrubyContext{} = ctx),
+    do: %JrubyContext{ctx | with_bundle_exec?: true}
+
+  def run_without_bundle_exec(%JrubyContext{} = ctx),
+    do: %JrubyContext{ctx | with_bundle_exec?: false}
+
+  def is_running_with_bundle_exec?(%JrubyContext{} = ctx), do: ctx.with_bundle_exec?
 end

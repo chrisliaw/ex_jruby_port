@@ -4,7 +4,7 @@ defmodule ExJrubyPort do
   alias ExJrubyPort.JrubyContext
   use GenServer
 
-  def start_link(%JrubyContext{} = ctx) do
+  def start_link(ctx) do
     GenServer.start_link(__MODULE__, ctx)
   end
 

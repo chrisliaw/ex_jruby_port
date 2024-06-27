@@ -1,4 +1,6 @@
 defmodule ExJrubyPort.JrubyService do
+  alias ExJrubyPort.JrubyContext
+  alias ExJrubyPort.JrubyJarContext
   use GenServer
 
   def start_link(sess, file, params) do
@@ -80,10 +82,12 @@ defmodule ExJrubyPort.JrubyService do
   end
 
   def init(state) do
+    cmdline = build_cmdline(state)
+
     port =
       Port.open(
-        {:spawn,
-         "#{state.session.context.java_path} -jar #{state.session.context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"},
+        {:spawn, cmdline},
+        # "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"},
         # , {:packet, 4}, :nouse_stdio]
         [:binary, :exit_status]
       )
@@ -91,12 +95,16 @@ defmodule ExJrubyPort.JrubyService do
     {:ok, Map.put_new(state, :port, port)}
   end
 
-  # def handle_call({:invoke, cls, mtd, params, opts}, _from, state) do
-  #  send({state.port_process_name, state.port_node_name}, {:invoke, cls, mtd, params, opts})
+  # def init(%{session: %{context: %JrubyContext{} = context}} = state) do
+  #  port =
+  #    Port.open(
+  #      {:spawn,
+  #       "#{context.jruby_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"},
+  #      # , {:packet, 4}, :nouse_stdio]
+  #      [:binary, :exit_status]
+  #    )
 
-  #  res = read_port_response(state.port)
-
-  #  {:reply, res, state}
+  #  {:ok, Map.put_new(state, :port, port)}
   # end
 
   def handle_call(:wait_for_port, _from, state) do
@@ -119,6 +127,20 @@ defmodule ExJrubyPort.JrubyService do
   def handle_info(msg, state) do
     IO.puts("handle_info got : #{inspect(msg)}")
     {:noreply, state}
+  end
+
+  defp build_cmdline(%{session: %{context: %JrubyContext{} = context}} = state) do
+    case context.with_bundle_exec? do
+      true ->
+        "bundle exec #{context.jruby_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
+
+      false ->
+        "#{context.jruby_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
+    end
+  end
+
+  defp build_cmdline(%{session: %{context: %JrubyJarContext{} = context}} = state) do
+    "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
   end
 
   defp read_port_response(port) do
