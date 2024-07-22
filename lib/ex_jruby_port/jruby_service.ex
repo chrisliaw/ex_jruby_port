@@ -3,6 +3,8 @@ defmodule ExJrubyPort.JrubyService do
   alias ExJrubyPort.JrubyJarContext
   use GenServer
 
+  require Logger
+
   def start_link(sess, file, params) do
     # since the Java part shall be process per se, need to setup the environment for process
 
@@ -84,6 +86,8 @@ defmodule ExJrubyPort.JrubyService do
   def init(state) do
     cmdline = build_cmdline(state)
 
+    Logger.debug("cmdline : #{inspect(cmdline)}")
+
     port =
       Port.open(
         {:spawn, cmdline},
@@ -140,7 +144,54 @@ defmodule ExJrubyPort.JrubyService do
   end
 
   defp build_cmdline(%{session: %{context: %JrubyJarContext{} = context}} = state) do
-    "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
+    # "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
+    cmdline = []
+    cmdline = cmdline ++ [context.java_path]
+
+    cmdline =
+      cmdline ++
+        [
+          Enum.join(
+            case Enum.empty?(context.java_library_path) do
+              false ->
+                ["-Djava.library.path="] ++ [Path.expand(Path.join(context.java_library_path))]
+
+              true ->
+                []
+            end,
+            ""
+          )
+        ]
+
+    cmdline =
+      cmdline ++
+        case Enum.empty?(context.jar_path) do
+          false ->
+            ["-jar"] ++ context.jar_path
+
+          true ->
+            []
+        end
+
+    cmdline =
+      cmdline ++
+        [Path.expand(state.file)] ++
+        [
+          Enum.join(
+            [
+              state.port_node_name,
+              state.port_process_name,
+              :erlang.get_cookie(),
+              state.local_node_name,
+              state.local_process_name
+            ],
+            "/"
+          )
+        ] ++ state.params
+
+    Enum.join(cmdline, " ")
+
+    # "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(state.file)} #{state.port_node_name}/#{state.port_process_name}/#{:erlang.get_cookie()}/#{state.local_node_name}/#{state.local_process_name} #{Enum.join(state.params, " ")}"
   end
 
   defp read_port_response(port) do
@@ -151,6 +202,9 @@ defmodule ExJrubyPort.JrubyService do
 
       {:ok, res} ->
         {:ok, res}
+
+      {:ok} ->
+        :ok
 
       {:error, reason} ->
         {:error, reason}

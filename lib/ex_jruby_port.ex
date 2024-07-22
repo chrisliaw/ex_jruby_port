@@ -1,11 +1,26 @@
 defmodule ExJrubyPort do
   alias ExJrubyPort.JrubyService
   alias ExJrubyPort.JrubySession
-  alias ExJrubyPort.JrubyContext
   use GenServer
 
-  def start_link(ctx) do
+  def start_link(
+        ctx,
+        opts \\ %{
+          cluster: false,
+          cluster_scope: :ex_jruby_port,
+          cluster_group: __MODULE__,
+          process_name: nil
+        }
+      )
+
+  def start_link(ctx, %{cluster: false}) do
     GenServer.start_link(__MODULE__, ctx)
+  end
+
+  def start_link(ctx, %{cluster: true} = opts) do
+    GenServer.start_link(__MODULE__, ctx,
+      name: {:via, ApProcmanSyn, {opts.cluster_scope, nil, opts.cluster_group}}
+    )
   end
 
   def run(pid, file, params \\ []) do
@@ -17,6 +32,8 @@ defmodule ExJrubyPort do
   def start_node(pid, file, params \\ []) do
     GenServer.call(pid, {:new_node, file, params})
   end
+
+  def stop(pid), do: GenServer.stop(pid)
 
   def init(opts) do
     {:ok, %{context: opts}}

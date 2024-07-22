@@ -35,10 +35,24 @@ defmodule ExJrubyPort.JrubySession do
         _from,
         %JrubySession{context: %JrubyJarContext{} = context} = state
       ) do
+    cmdline = [] ++ [context.java_path]
+
+    cmdline =
+      cmdline ++
+        case Enum.empty?(context.jar_path) do
+          false ->
+            ["-jar"] ++ context.jar_path
+
+          true ->
+            []
+        end
+
+    cmdline = cmdline ++ [Path.expand(file)] ++ params
+
     port =
       Port.open(
-        {:spawn,
-         "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(file)} #{Enum.join(params, " ")}"},
+        {:spawn, Enum.join(cmdline, " ")},
+        # "#{context.java_path} -jar #{context.jruby_jar_path} #{Path.expand(file)} #{Enum.join(params, " ")}"},
         [
           :binary,
           :exit_status
