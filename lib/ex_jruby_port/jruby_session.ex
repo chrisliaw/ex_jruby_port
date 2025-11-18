@@ -94,7 +94,7 @@ defmodule ExJrubyPort.JrubySession do
   end
 
   def handle_info(msg, _state) do
-    IO.puts("handle_info : #{IO.inspect(msg)}")
+    IO.inspect("handle_info jruby_session: #{IO.inspect(msg)}")
     {:noreply, :ok}
   end
 end

@@ -12,6 +12,7 @@ defmodule ExJrubyPort.JrubyJarContext do
     field(:jar_path, list(),
       default: [
         Path.expand(Path.join([__DIR__, "..", "..", "jars", "jruby-complete-9.4.7.0.jar"]))
+        # Path.expand(Path.join([__DIR__, "..", "..", "jars", "jruby-complete-10.0.2.0.jar"]))
       ]
     )
 

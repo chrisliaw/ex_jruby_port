@@ -7,6 +7,10 @@ defmodule ExJrubyPort.JrubyContext do
     field(:with_bundle_exec?, boolean(), default: false)
   end
 
+  def new() do
+    %JrubyContext{jruby_path: System.find_executable("jruby")}
+  end
+
   def set_jruby_path(%JrubyContext{} = ctx, path), do: %JrubyContext{ctx | jruby_path: path}
 
   def run_with_bundle_exec(%JrubyContext{} = ctx),

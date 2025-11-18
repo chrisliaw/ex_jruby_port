@@ -71,7 +71,8 @@ defmodule ExJrubyPort.JrubyService do
 
   defp generate_local_node_name() do
     prefix = :crypto.strong_rand_bytes(8) |> Base.encode16()
-    name = String.to_atom("#{prefix}@localhost")
+    # name = String.to_atom("#{prefix}@localhost")
+    name = String.to_atom("#{prefix}@127.0.0.1")
 
     case :net_adm.ping(name) do
       :pong ->
@@ -88,6 +89,8 @@ defmodule ExJrubyPort.JrubyService do
 
     Logger.debug("cmdline : #{inspect(cmdline)}")
 
+    Process.flag(:trap_exit, true)
+
     port =
       Port.open(
         {:spawn, cmdline},
@@ -95,6 +98,11 @@ defmodule ExJrubyPort.JrubyService do
         # , {:packet, 4}, :nouse_stdio]
         [:binary, :exit_status]
       )
+
+    Process.link(port)
+    :erlang.monitor(:port, port)
+
+    Process.monitor(self())
 
     {:ok, Map.put_new(state, :port, port)}
   end
@@ -129,8 +137,19 @@ defmodule ExJrubyPort.JrubyService do
   end
 
   def handle_info(msg, state) do
-    IO.puts("handle_info got : #{inspect(msg)}")
+    IO.puts("handle_info JruySeseion got : #{inspect(msg)}")
     {:noreply, state}
+  end
+
+  def terminate(_reason, state) do
+    # IO.puts("terminate : #{inspect(reason)} / #{inspect(state)}")
+    try do
+      send({state.port_process_name, state.port_node_name}, :stop)
+      Port.close(state.port)
+      :ok
+    catch
+      _ -> :ok
+    end
   end
 
   defp build_cmdline(%{session: %{context: %JrubyContext{} = context}} = state) do
@@ -200,21 +219,30 @@ defmodule ExJrubyPort.JrubyService do
         IO.puts("loop2 received : #{inspect(data)}")
         read_port_response(port)
 
-      {:ok, res} ->
-        {:ok, res}
+      # {:ok, res} ->
+      #  {:ok, res}
 
-      {:ok} ->
-        :ok
+      # {:ok} ->
+      #  :ok
 
-      {:error, reason} ->
-        {:error, reason}
+      # {:error, reason} ->
+      #  {:error, reason}
 
       {^port, {:exit_status, st}} ->
         IO.puts("Process send back exit_status #{st}")
 
       res ->
-        IO.puts("Loop2 received unexpected: #{inspect(res)}")
-        read_port_response(port)
+        case List.first(Tuple.to_list(res)) do
+          :ok ->
+            res
+
+          :error ->
+            res
+
+          vres ->
+            IO.puts("Loop2 received unexpected: #{inspect(vres)}")
+            read_port_response(port)
+        end
     end
   end
 

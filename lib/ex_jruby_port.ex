@@ -19,7 +19,8 @@ defmodule ExJrubyPort do
 
   def start_link(ctx, %{cluster: true} = opts) do
     GenServer.start_link(__MODULE__, ctx,
-      name: {:via, ApProcmanSyn, {opts.cluster_scope, nil, opts.cluster_group}}
+      # name: {:via, ApProcmanSyn, {opts.cluster_scope, nil, opts.cluster_group}}
+      name: {:via, StrapProcReg, %{group: opts.cluster_group, operation: :register}}
     )
   end
 
@@ -36,6 +37,7 @@ defmodule ExJrubyPort do
   def stop(pid), do: GenServer.stop(pid)
 
   def init(opts) do
+    IO.puts("init ExJrubyPort opts : #{inspect(opts)}")
     {:ok, %{context: opts}}
   end
 
@@ -49,5 +51,10 @@ defmodule ExJrubyPort do
   def handle_call({:new_node, file, params}, _from, state) do
     {:ok, spid} = JrubyService.start_link(state, file, params)
     {:reply, {:ok, spid}, state}
+  end
+
+  def handle_info(msg, state) do
+    IO.puts("ExJrubyPort handle_info got : #{msg}")
+    {:noreply, state}
   end
 end

@@ -57,7 +57,7 @@ defmodule ExJrubyPortTest do
   end
 
   test "Calling JRuby using jruby script from Elixir" do
-    {:ok, pid} = ExJrubyPort.start_link(%JrubyContext{})
+    {:ok, pid} = ExJrubyPort.start_link(JrubyContext.new())
     {:ok, res} = ExJrubyPort.run(pid, "./test/jruby/hello.rb")
     IO.inspect(res)
     # assert(res == "Hello from JRuby!\n")
@@ -96,8 +96,8 @@ defmodule ExJrubyPortTest do
     # {:ok, srres2} =
     #  JRubyService.invoke(spid, "@jan", "say_some", "January is here")
 
-    # IO.puts("Elixir side : #{inspect(srres2)}")
+    # JrubyService.stop(spid)
 
-    JrubyService.stop(spid)
+    # JrubyService.stop(spid)
   end
 end

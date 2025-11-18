@@ -54,7 +54,7 @@ module JrubyExPort
 
       loop do
         val = mbox.receive
-        puts "val is #{val}"
+        # puts "val is #{val}"
         break if requested_to_stop(val)
 
         next unless val.is_a?(OtpErlangTuple)
@@ -67,7 +67,7 @@ module JrubyExPort
         end
       end
 
-      puts 'Process loop ends'
+      # puts 'Process loop ends'
     end
 
     def reply_caller(reply, *value)
