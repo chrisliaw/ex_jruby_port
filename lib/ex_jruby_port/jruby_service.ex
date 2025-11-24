@@ -141,14 +141,16 @@ defmodule ExJrubyPort.JrubyService do
     {:noreply, state}
   end
 
-  def terminate(_reason, state) do
-    # IO.puts("terminate : #{inspect(reason)} / #{inspect(state)}")
+  def terminate(reason, state) do
+    IO.puts("terminate : #{inspect(reason)} / #{inspect(state)}")
+
     try do
       send({state.port_process_name, state.port_node_name}, :stop)
       Port.close(state.port)
       :ok
     catch
-      _ -> :ok
+      _err ->
+        :ok
     end
   end
 

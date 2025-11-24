@@ -37,7 +37,7 @@ defmodule ExJrubyPort do
   def stop(pid), do: GenServer.stop(pid)
 
   def init(opts) do
-    IO.puts("init ExJrubyPort opts : #{inspect(opts)}")
+    # IO.puts("init ExJrubyPort opts : #{inspect(opts)}")
     {:ok, %{context: opts}}
   end
 
